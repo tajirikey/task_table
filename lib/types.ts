@@ -6,12 +6,22 @@ export type Day = {
   dinner?: DinnerValue
   duty?: DutyValue
   away?: MemberKey[]
+  awayNone?: boolean // 夜不在「なし」（誰もいなくならない）を明示
   memo?: string
 }
 export type AppData = {
   version: number
   members: Record<MemberKey, Member>
   days: Record<string, Day> // key: YYYY-MM-DD
+}
+
+// 夜不在を他のタスクと同じ値の形（a / b / both / none）にそろえる
+export function awayValue(d?: Day): DinnerValue | undefined {
+  const a = d?.away || []
+  if (a.length >= 2) return 'both'
+  if (a.length === 1) return a[0]
+  if (d?.awayNone) return 'none'
+  return undefined
 }
 
 export function defaultData(): AppData {

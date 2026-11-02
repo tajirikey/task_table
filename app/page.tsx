@@ -4,15 +4,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AUTH_KEY } from '@/lib/client'
 import {
-  defaultData, normalizeData,
+  awayValue, defaultData, normalizeData,
   type AppData, type Day, type DinnerValue, type DutyValue, type Member, type MemberKey,
 } from '@/lib/types'
 
 const TASKS = {
   dinner: { icon: '🍳', label: '夕飯' },
   duty: { icon: '🏠', label: '在宅当番' },
+  away: { icon: '🌙', label: '夜不在' },
 } as const
-const AWAY_BG = '#2d2f4a'
 const WD = '日月火水木金土'
 const WEEKEND_KEY = 'task_table_show_weekend'
 
@@ -46,24 +46,17 @@ function Tag({ value, members }: { value?: string; members: AppData['members'] }
   )
 }
 
-function AwayTag({ m }: { m: Member }) {
-  return (
-    <span className="tag away" style={{ boxShadow: `inset 4px 0 0 ${m.color}` }}>
-      <span className="emo">{m.emoji}</span><span className="nm">{m.name}</span>
-    </span>
-  )
-}
-
 /* ---------- 選択ボタン ---------- */
 function Seg<T extends string>({ options, isOn, onToggle, onBg }: {
-  options: { value: T; label: string }[]
+  options: ({ value: T; label: string } | null)[] // null = 空き枠（列の位置をそろえるため）
   isOn: (v: T) => boolean
   onToggle: (v: T) => void
   onBg: (v: T) => string
 }) {
   return (
     <div className="seg">
-      {options.map((o) => {
+      {options.map((o, i) => {
+        if (!o) return <span key={`blank-${i}`} className="seg-blank" />
         const on = isOn(o.value)
         return (
           <button key={o.value} type="button" className={on ? 'on' : ''}
@@ -85,6 +78,7 @@ function DayEditor({ id, initial, members, onSave, onClose }: {
   const [dinner, setDinner] = useState<DinnerValue | undefined>(initial.dinner)
   const [duty, setDuty] = useState<DutyValue | undefined>(initial.duty)
   const [away, setAway] = useState<MemberKey[]>(initial.away || [])
+  const [awayNone, setAwayNone] = useState(!!initial.awayNone && !(initial.away || []).length)
   const [memo, setMemo] = useState(initial.memo || '')
   const [y, m, d] = id.split('-').map(Number)
   const wd = WD[new Date(y, m - 1, d).getDay()]
@@ -92,6 +86,7 @@ function DayEditor({ id, initial, members, onSave, onClose }: {
     { value: 'a', label: `${members.a.emoji} ${members.a.name}` },
     { value: 'b', label: `${members.b.emoji} ${members.b.name}` },
   ]
+  const NONE = { value: 'none' as const, label: 'なし' }
   const bg = (v: string) => bgFor(members, v) || '#8a857c'
 
   const save = () => {
@@ -99,6 +94,7 @@ function DayEditor({ id, initial, members, onSave, onClose }: {
     if (dinner) out.dinner = dinner
     if (duty) out.duty = duty
     if (away.length) out.away = [...away].sort() as MemberKey[]
+    else if (awayNone) out.awayNone = true
     if (memo.trim()) out.memo = memo.trim()
     onSave(out)
   }
@@ -111,7 +107,7 @@ function DayEditor({ id, initial, members, onSave, onClose }: {
         <fieldset>
           <legend>🍳 夕飯</legend>
           <Seg<DinnerValue>
-            options={[...people, { value: 'both', label: '👫 ふたり' }, { value: 'none', label: 'なし' }]}
+            options={[...people, null]}
             isOn={(v) => dinner === v}
             onToggle={(v) => setDinner(dinner === v ? undefined : v)}
             onBg={bg} />
@@ -120,19 +116,23 @@ function DayEditor({ id, initial, members, onSave, onClose }: {
         <fieldset>
           <legend>🏠 在宅当番</legend>
           <Seg<DutyValue>
-            options={[...people, { value: 'none', label: 'なし' }]}
+            options={[...people, NONE]}
             isOn={(v) => duty === v}
             onToggle={(v) => setDuty(duty === v ? undefined : v)}
             onBg={bg} />
         </fieldset>
 
         <fieldset>
-          <legend>🌙 夜いない人</legend>
-          <Seg<MemberKey>
-            options={people}
-            isOn={(v) => away.includes(v)}
-            onToggle={(v) => setAway(away.includes(v) ? away.filter((x) => x !== v) : [...away, v])}
-            onBg={() => AWAY_BG} />
+          <legend>🌙 夜不在<small>（複数選択可）</small></legend>
+          <Seg<MemberKey | 'none'>
+            options={[...people, NONE]}
+            isOn={(v) => (v === 'none' ? awayNone : away.includes(v))}
+            onToggle={(v) => {
+              if (v === 'none') { setAwayNone(!awayNone); setAway([]); return }
+              setAwayNone(false)
+              setAway(away.includes(v) ? away.filter((x) => x !== v) : [...away, v])
+            }}
+            onBg={bg} />
         </fieldset>
 
         <label className="memo">メモ
@@ -140,7 +140,7 @@ function DayEditor({ id, initial, members, onSave, onClose }: {
         </label>
 
         <div className="dialog-actions">
-          <button type="button" className="btn ghost" onClick={() => { setDinner(undefined); setDuty(undefined); setAway([]); setMemo('') }}>クリア</button>
+          <button type="button" className="btn ghost" onClick={() => { setDinner(undefined); setDuty(undefined); setAway([]); setAwayNone(false); setMemo('') }}>クリア</button>
           <span className="spacer" />
           <button type="button" className="btn" onClick={onClose}>キャンセル</button>
           <button type="button" className="btn primary" onClick={save}>保存</button>
@@ -343,7 +343,6 @@ export default function Home() {
       </span>
     )
   }
-  const awayText = (today.away || []).map((k) => `${members[k].emoji} ${members[k].name}`).join('・')
 
   return (
     <div className="view">
@@ -357,9 +356,7 @@ export default function Home() {
         <div className="t-rows">
           {todayItem('dinner', today.dinner)}
           {todayItem('duty', today.duty)}
-          <span className="t-item" style={awayText ? { background: AWAY_BG, color: '#fff' } : undefined}>
-            🌙 夜不在：<b>{awayText || 'なし'}</b>
-          </span>
+          {todayItem('away', awayValue(today))}
         </div>
         {today.memo && <div className="t-memo">📝 {today.memo}</div>}
       </div>
@@ -368,7 +365,7 @@ export default function Home() {
         <span><i className="sw" style={{ background: members.a.color }} />{members.a.emoji} {members.a.name}</span>
         <span><i className="sw" style={{ background: members.b.color }} />{members.b.emoji} {members.b.name}</span>
         <span><i className="sw" style={{ background: bgFor(members, 'both') }} />ふたり</span>
-        <span><i className="sw" style={{ background: AWAY_BG }} />🌙 夜不在</span>
+        <span><i className="sw" style={{ background: '#e9e6e0' }} />なし</span>
       </div>
 
       <div className="month-nav">
@@ -423,12 +420,7 @@ export default function Home() {
                   </tr>
                   <tr>
                     <th className="lbl">🌙 夜不在</th>
-                    {week.map((d) => {
-                      const away = days[ymd(d)]?.away || []
-                      return td(d, away.length
-                        ? away.map((k) => <AwayTag key={k} m={members[k]} />)
-                        : <span className="tag empty">－</span>)
-                    })}
+                    {week.map((d) => td(d, <Tag value={awayValue(days[ymd(d)])} members={members} />))}
                   </tr>
                   {hasMemo && (
                     <tr className="memo-row">

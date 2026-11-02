@@ -113,7 +113,6 @@ thead .td-btn { flex-direction: row; align-items: baseline; justify-content: cen
 .tag .nm { overflow: hidden; text-overflow: ellipsis; }
 .tag.none { background: #e9e6e0; color: var(--muted); }
 .tag.empty { background: none; color: #d4cfc5; font-weight: 400; }
-.tag.away { background: #2d2f4a; }
 .memo-row td { height: auto; }
 .memo-txt { font-size: 10px; color: var(--muted); line-height: 1.25; word-break: break-all; text-align: center; }
 
@@ -140,9 +139,11 @@ thead .td-btn { flex-direction: row; align-items: baseline; justify-content: cen
 .modal h3 { margin: 0; font-size: 18px; }
 fieldset { border: none; padding: 0; margin: 0; }
 fieldset legend { font-size: 14px; font-weight: 700; margin-bottom: 6px; padding: 0; }
-.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.seg-blank { border: 2px dashed transparent; }
+fieldset legend small { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 4px; }
 .seg button {
-  flex: 1 1 0; min-width: 72px; padding: 10px 6px; border-radius: 10px; font-size: 14px;
+  min-width: 0; padding: 10px 6px; border-radius: 10px; font-size: 14px;
   border: 2px solid var(--line); background: #fff; cursor: pointer; color: var(--text);
 }
 .seg button.on { color: #fff; border-color: transparent; font-weight: 700; }
