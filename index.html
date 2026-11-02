@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f4ef">
+  <title>ふたりの当番表</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ログイン画面 -->
+  <section id="login-view" class="view" hidden>
+    <div class="login-card">
+      <div class="login-logo">🍳🏠🌙</div>
+      <h1>ふたりの当番表</h1>
+      <form id="login-form">
+        <label>メールアドレス
+          <input type="email" id="login-email" autocomplete="username" required>
+        </label>
+        <label>パスワード
+          <input type="password" id="login-password" autocomplete="current-password" required>
+        </label>
+        <button type="submit" class="btn primary">ログイン</button>
+        <p id="login-error" class="error" role="alert"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- メイン画面 -->
+  <section id="main-view" class="view" hidden>
+    <header class="topbar">
+      <h1>ふたりの当番表</h1>
+      <div class="topbar-actions">
+        <button id="settings-btn" class="icon-btn" title="設定" aria-label="設定">⚙️</button>
+        <button id="logout-btn" class="icon-btn" title="ログアウト" aria-label="ログアウト">🚪</button>
+      </div>
+    </header>
+
+    <p id="demo-banner" class="demo-banner" hidden>
+      デモモード：データはこの端末のブラウザ内にのみ保存されます（共有するには README の Firebase 設定を行ってください）
+    </p>
+
+    <!-- 今日のまとめ -->
+    <div id="today-card" class="today-card"></div>
+
+    <!-- 凡例 -->
+    <div id="legend" class="legend"></div>
+
+    <!-- 月ナビ -->
+    <div class="month-nav">
+      <button id="prev-month" class="icon-btn" aria-label="前の月">◀</button>
+      <h2 id="month-label"></h2>
+      <button id="next-month" class="icon-btn" aria-label="次の月">▶</button>
+      <button id="today-btn" class="btn small">今日</button>
+    </div>
+
+    <div class="calendar">
+      <div class="weekdays">
+        <div class="sun">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="sat">土</div>
+      </div>
+      <div id="calendar-grid" class="grid"></div>
+    </div>
+    <p class="hint">日付をタップすると担当を編集できます</p>
+  </section>
+
+  <!-- 日付編集ダイアログ -->
+  <dialog id="day-dialog">
+    <form method="dialog" id="day-form">
+      <h3 id="day-title"></h3>
+
+      <fieldset>
+        <legend>🍳 夕飯</legend>
+        <div class="seg" id="seg-dinner"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>🏠 在宅当番</legend>
+        <div class="seg" id="seg-duty"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>🌙 夜いない人</legend>
+        <div class="seg multi" id="seg-away"></div>
+      </fieldset>
+
+      <label class="memo">メモ
+        <input type="text" id="day-memo" maxlength="40" placeholder="例：19時帰宅">
+      </label>
+
+      <div class="dialog-actions">
+        <button type="button" id="day-clear" class="btn ghost">クリア</button>
+        <span class="spacer"></span>
+        <button value="cancel" class="btn">キャンセル</button>
+        <button value="save" id="day-save" class="btn primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 設定ダイアログ -->
+  <dialog id="settings-dialog">
+    <form method="dialog" id="settings-form">
+      <h3>設定</h3>
+      <div id="member-settings"></div>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button value="cancel" class="btn">キャンセル</button>
+        <button value="save" class="btn primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
