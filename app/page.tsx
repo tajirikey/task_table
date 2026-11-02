@@ -235,10 +235,16 @@ export default function Home() {
   // ポーリングで他端末の更新を取得（5秒ごと）
   useEffect(() => {
     if (!token) return
-    const iv = setInterval(() => fetchData(), 5000)
-    const onFocus = () => fetchData()
-    window.addEventListener('focus', onFocus)
-    return () => { clearInterval(iv); window.removeEventListener('focus', onFocus) }
+    // 画面が表示されている間だけ同期する（Redis の無料枠を節約）
+    const iv = setInterval(() => { if (!document.hidden) fetchData() }, 5000)
+    const onVisible = () => { if (!document.hidden) fetchData() }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      clearInterval(iv)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
   }, [token, fetchData])
 
   useEffect(() => { busy.current = !!editing || settingsOpen }, [editing, settingsOpen])
