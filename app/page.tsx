@@ -14,6 +14,7 @@ const TASKS = {
 } as const
 const AWAY_BG = '#2d2f4a'
 const WD = '日月火水木金土'
+const WEEKEND_KEY = 'task_table_show_weekend'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -31,25 +32,24 @@ function whoLabel(members: AppData['members'], v?: string): string {
   return ''
 }
 
-/* ---------- カレンダー内の小さな札 ---------- */
-function Pill({ task, value, members }: { task: keyof typeof TASKS; value?: string; members: AppData['members'] }) {
-  if (!value) return null
+/* ---------- 表のセルに入る担当者タグ ---------- */
+function Tag({ value, members }: { value?: string; members: AppData['members'] }) {
+  if (!value) return <span className="tag empty">－</span>
   const bg = bgFor(members, value)
   const person = value === 'a' || value === 'b' ? members[value] : null
-  const emo = person ? person.emoji : value === 'both' ? '👫' : ''
-  const nm = person ? person.name : value === 'both' ? '2人' : 'なし'
+  const emo = person ? person.emoji : ''
+  const nm = person ? person.name : value === 'both' ? 'ふたり' : 'なし'
   return (
-    <span className={bg ? 'pill' : 'pill none'} style={bg ? { background: bg } : undefined}
-      title={`${TASKS[task].label}：${whoLabel(members, value)}`}>
-      <span className="ti">{TASKS[task].icon}</span>{emo}<span className="nm">{nm}</span>
+    <span className={bg ? 'tag' : 'tag none'} style={bg ? { background: bg } : undefined}>
+      <span className="emo">{emo}</span><span className="nm">{nm}</span>
     </span>
   )
 }
 
-function AwayPill({ m }: { m: Member }) {
+function AwayTag({ m }: { m: Member }) {
   return (
-    <span className="pill away" style={{ boxShadow: `inset 4px 0 0 ${m.color}` }} title={`夜不在：${m.name}`}>
-      <span className="ti">🌙</span>{m.emoji}<span className="nm">{m.name}</span>
+    <span className="tag away" style={{ boxShadow: `inset 4px 0 0 ${m.color}` }}>
+      <span className="emo">{m.emoji}</span><span className="nm">{m.name}</span>
     </span>
   )
 }
@@ -151,10 +151,12 @@ function DayEditor({ id, initial, members, onSave, onClose }: {
 }
 
 /* ---------- 設定 ---------- */
-function SettingsEditor({ members, onSave, onClose, onLogout }: {
-  members: AppData['members']; onSave: (m: AppData['members']) => void; onClose: () => void; onLogout: () => void
+function SettingsEditor({ members, showWeekend, onSave, onClose, onLogout }: {
+  members: AppData['members']; showWeekend: boolean
+  onSave: (m: AppData['members'], showWeekend: boolean) => void; onClose: () => void; onLogout: () => void
 }) {
   const [draft, setDraft] = useState(members)
+  const [weekend, setWeekend] = useState(showWeekend)
   const set = (k: MemberKey, field: keyof Member, v: string) => setDraft({ ...draft, [k]: { ...draft[k], [field]: v } })
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -167,6 +169,10 @@ function SettingsEditor({ members, onSave, onClose, onLogout }: {
             <label>色<input type="color" value={draft[k].color} onChange={(e) => set(k, 'color', e.target.value)} /></label>
           </div>
         ))}
+        <label className="switch-row">
+          <input type="checkbox" checked={weekend} onChange={(e) => setWeekend(e.target.checked)} />
+          土日も表示する<small>（この端末だけの設定）</small>
+        </label>
         <div className="dialog-actions">
           <button type="button" className="btn ghost" onClick={onLogout}>ログアウト</button>
           <span className="spacer" />
@@ -174,7 +180,7 @@ function SettingsEditor({ members, onSave, onClose, onLogout }: {
           <button type="button" className="btn primary" onClick={() => onSave({
             a: { name: draft.a.name.trim() || '?', emoji: draft.a.emoji.trim() || '🙂', color: draft.a.color },
             b: { name: draft.b.name.trim() || '?', emoji: draft.b.emoji.trim() || '🙂', color: draft.b.color },
-          })}>保存</button>
+          }, weekend)}>保存</button>
         </div>
       </div>
     </div>
@@ -190,6 +196,7 @@ export default function Home() {
   const [month, setMonth] = useState(() => { const d = new Date(); d.setDate(1); return d })
   const [editing, setEditing] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [showWeekend, setShowWeekend] = useState(false) // 既定は土日を非表示
   const [toastMsg, setToastMsg] = useState('')
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const busy = useRef(false) // 編集中・保存中はポーリング結果で上書きしない
@@ -204,6 +211,11 @@ export default function Home() {
     try { localStorage.removeItem(AUTH_KEY) } catch {}
     router.replace('/login')
   }, [router])
+
+  // 土日表示の設定（端末ごと）
+  useEffect(() => {
+    try { setShowWeekend(localStorage.getItem(WEEKEND_KEY) === '1') } catch {}
+  }, [])
 
   // 認証チェック
   useEffect(() => {
@@ -280,10 +292,13 @@ export default function Home() {
     post({ day: { id, value: Object.keys(value).length ? value : null } }, { ...data, days })
   }
 
-  function saveMembers(members: AppData['members']) {
+  function saveSettings(members: AppData['members'], weekend: boolean) {
     if (!data) return
     setSettingsOpen(false)
-    post({ members }, { ...data, members })
+    setShowWeekend(weekend)
+    try { localStorage.setItem(WEEKEND_KEY, weekend ? '1' : '0') } catch {}
+    if (JSON.stringify(members) !== JSON.stringify(data.members)) post({ members }, { ...data, members })
+    else toast('設定を保存しました')
   }
 
   if (!token || !data) {
@@ -311,8 +326,12 @@ export default function Home() {
   const start = new Date(month); start.setDate(1 - month.getDay())
   const last = new Date(month.getFullYear(), month.getMonth() + 1, 0)
   const end = new Date(last); end.setDate(last.getDate() + (6 - last.getDay()))
-  const cells: Date[] = []
-  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) cells.push(new Date(d))
+  const weeks: Date[][] = []
+  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    if (d.getDay() === 0) weeks.push([])
+    const wd = d.getDay()
+    if (showWeekend || (wd !== 0 && wd !== 6)) weeks[weeks.length - 1].push(new Date(d))
+  }
 
   const moveMonth = (delta: number) => setMonth(new Date(month.getFullYear(), month.getMonth() + delta, 1))
 
@@ -349,7 +368,6 @@ export default function Home() {
         <span><i className="sw" style={{ background: members.a.color }} />{members.a.emoji} {members.a.name}</span>
         <span><i className="sw" style={{ background: members.b.color }} />{members.b.emoji} {members.b.name}</span>
         <span><i className="sw" style={{ background: bgFor(members, 'both') }} />ふたり</span>
-        <span>🍳 夕飯</span><span>🏠 在宅当番</span>
         <span><i className="sw" style={{ background: AWAY_BG }} />🌙 夜不在</span>
       </div>
 
@@ -360,39 +378,78 @@ export default function Home() {
         <button className="btn small" onClick={() => { const d = new Date(); d.setDate(1); setMonth(d) }}>今日</button>
       </div>
 
-      <div className="calendar">
-        <div className="weekdays">
-          {[...WD].map((w, i) => <div key={w} className={i === 0 ? 'sun' : i === 6 ? 'sat' : ''}>{w}</div>)}
-        </div>
-        <div className="grid">
-          {cells.map((d) => {
+      <div className="weeks">
+        {weeks.map((week) => {
+          const hasMemo = week.some((d) => days[ymd(d)]?.memo)
+          const colCls = (d: Date) => {
+            const c: string[] = []
+            if (d.getMonth() !== month.getMonth()) c.push('other')
+            if (ymd(d) === todayId) c.push('today')
+            if (d.getDay() === 0) c.push('sun')
+            if (d.getDay() === 6) c.push('sat')
+            return c.join(' ')
+          }
+          const td = (d: Date, content: React.ReactNode) => {
             const id = ymd(d)
-            const v = days[id] || {}
-            const cls = ['cell']
-            if (d.getMonth() !== month.getMonth()) cls.push('other')
-            if (id === todayId) cls.push('today')
-            if (d.getDay() === 0) cls.push('sun')
-            if (d.getDay() === 6) cls.push('sat')
             return (
-              <button key={id} type="button" className={cls.join(' ')} onClick={() => setEditing(id)}>
-                <span className="d">{d.getDate()}</span>
-                <Pill task="dinner" value={v.dinner} members={members} />
-                <Pill task="duty" value={v.duty} members={members} />
-                {(v.away || []).map((k) => <AwayPill key={k} m={members[k]} />)}
-                {v.memo && <span className="memo-dot">📝{v.memo}</span>}
-              </button>
+              <td key={id} className={colCls(d)}>
+                <button type="button" className="td-btn" onClick={() => setEditing(id)}>{content}</button>
+              </td>
             )
-          })}
-        </div>
+          }
+          return (
+            <div className="week" key={ymd(week[0])}>
+              <table className={showWeekend ? 'tbl seven' : 'tbl'}>
+                <thead>
+                  <tr>
+                    <th className="lbl" />
+                    {week.map((d) => (
+                      <th key={ymd(d)} className={colCls(d)}>
+                        <button type="button" className="td-btn" onClick={() => setEditing(ymd(d))}>
+                          {d.getDate()}<small>({WD[d.getDay()]})</small>
+                        </button>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th className="lbl">🍳 夕飯</th>
+                    {week.map((d) => td(d, <Tag value={days[ymd(d)]?.dinner} members={members} />))}
+                  </tr>
+                  <tr>
+                    <th className="lbl">🏠 在宅当番</th>
+                    {week.map((d) => td(d, <Tag value={days[ymd(d)]?.duty} members={members} />))}
+                  </tr>
+                  <tr>
+                    <th className="lbl">🌙 夜不在</th>
+                    {week.map((d) => {
+                      const away = days[ymd(d)]?.away || []
+                      return td(d, away.length
+                        ? away.map((k) => <AwayTag key={k} m={members[k]} />)
+                        : <span className="tag empty">－</span>)
+                    })}
+                  </tr>
+                  {hasMemo && (
+                    <tr className="memo-row">
+                      <th className="lbl">📝 メモ</th>
+                      {week.map((d) => td(d, <span className="memo-txt">{days[ymd(d)]?.memo || ''}</span>))}
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )
+        })}
       </div>
-      <p className="hint">日付をタップすると担当を編集できます（5秒ごとに自動同期）</p>
+      <p className="hint">マスをタップすると担当を編集できます（5秒ごとに自動同期）</p>
 
       {editing && (
         <DayEditor id={editing} initial={days[editing] || {}} members={members}
           onSave={(d) => saveDay(editing, d)} onClose={() => setEditing(null)} />
       )}
       {settingsOpen && (
-        <SettingsEditor members={members} onSave={saveMembers}
+        <SettingsEditor members={members} showWeekend={showWeekend} onSave={saveSettings}
           onClose={() => setSettingsOpen(false)} onLogout={() => { if (confirm('ログアウトしますか？')) logout() }} />
       )}
       <div className={`toast ${toastMsg ? 'show' : ''}`} role="status">{toastMsg}</div>

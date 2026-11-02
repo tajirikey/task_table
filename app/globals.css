@@ -74,41 +74,58 @@ input[type=email], input[type=password], input[type=text] {
 .month-nav { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
 .month-nav h2 { font-size: 18px; margin: 0; flex: 1; text-align: center; }
 
-/* ---------- calendar ---------- */
-.calendar { background: var(--card); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
-.weekdays, .grid { display: grid; grid-template-columns: repeat(7, 1fr); }
-.weekdays div { text-align: center; font-size: 12px; padding: 6px 0; color: var(--muted); border-bottom: 1px solid var(--line); }
-.weekdays .sun { color: var(--sun); } .weekdays .sat { color: var(--sat); }
-.cell {
-  min-height: 92px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
-  padding: 3px 2px 4px; cursor: pointer; display: flex; flex-direction: column; gap: 2px;
-  background: none; border-top: none; border-left: none; text-align: left; font: inherit; color: inherit;
-  min-width: 0;
+/* ---------- weekly tables ---------- */
+.weeks { display: flex; flex-direction: column; gap: 10px; }
+.week {
+  background: var(--card); border-radius: 14px; box-shadow: var(--shadow);
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
 }
-.cell:nth-child(7n) { border-right: none; }
-.cell:hover { background: #faf8f4; }
-.cell.other { opacity: .35; }
-.cell.today { background: var(--today); }
-.cell .d { font-size: 12px; font-weight: 600; padding-left: 3px; }
-.cell.sun .d { color: var(--sun); } .cell.sat .d { color: var(--sat); }
-.cell .memo-dot { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 3px; }
+.tbl { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; min-width: 360px; }
+.tbl.seven { min-width: 520px; }
+.tbl th, .tbl td { border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); padding: 0; height: 40px; }
+.tbl tr:last-child th, .tbl tr:last-child td { border-bottom: none; }
+.tbl th.lbl {
+  /* 列固定：横スクロールしてもタスク名が残る */
+  position: sticky; left: 0; z-index: 1; width: 78px;
+  background: #f2efe9; border-left: none; text-align: left; padding: 0 6px;
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+}
+.tbl thead th { height: 34px; font-size: 13px; font-weight: 700; background: #faf8f4; }
+.tbl thead th small { font-size: 10px; font-weight: 500; color: var(--muted); margin-left: 1px; }
+.tbl thead th.sun, .tbl thead th.sun small { color: var(--sun); }
+.tbl thead th.sat, .tbl thead th.sat small { color: var(--sat); }
+.tbl .today { background: var(--today) !important; }
+.tbl .other { opacity: .4; }
+.td-btn {
+  width: 100%; height: 100%; min-height: inherit; border: none; background: none; padding: 3px;
+  font: inherit; color: inherit; cursor: pointer;
+  display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 2px;
+}
+thead .td-btn { flex-direction: row; align-items: baseline; justify-content: center; }
+.td-btn:hover { background: rgba(0,0,0,.03); }
 
-.pill {
-  display: flex; align-items: center; justify-content: center; gap: 1px;
-  font-size: 12px; line-height: 1; padding: 3px 2px; border-radius: 6px;
+.tag {
+  display: flex; align-items: center; justify-content: center; gap: 2px; min-width: 0;
+  font-size: 12px; font-weight: 700; line-height: 1; padding: 5px 3px; border-radius: 6px;
   color: #fff; white-space: nowrap; overflow: hidden;
 }
-.pill .ti { font-size: 11px; }
-.pill.none { background: #e9e6e0; color: var(--muted); }
-.pill.away { background: #2d2f4a; color: #fff; }
-.pill .nm { font-size: 10px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.tag .emo { font-size: 12px; flex-shrink: 0; }
+.tag .nm { overflow: hidden; text-overflow: ellipsis; }
+.tag.none { background: #e9e6e0; color: var(--muted); }
+.tag.empty { background: none; color: #d4cfc5; font-weight: 400; }
+.tag.away { background: #2d2f4a; }
+.memo-row td { height: auto; }
+.memo-txt { font-size: 10px; color: var(--muted); line-height: 1.25; word-break: break-all; text-align: center; }
 
 .hint { text-align: center; color: var(--muted); font-size: 12px; }
 
-@media (max-width: 420px) {
-  .cell { min-height: 84px; }
-  .pill .nm { display: none; }
+@media (max-width: 380px) {
+  .tag .emo { display: none; }
 }
+
+.switch-row { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+.switch-row input { width: 20px; height: 20px; }
+.switch-row small { font-weight: 400; color: var(--muted); font-size: 12px; }
 
 /* ---------- dialogs ---------- */
 .modal-backdrop {
