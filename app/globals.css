@@ -26,6 +26,7 @@ body {
   border: 1px solid var(--line); background: var(--card); color: var(--text);
   padding: 9px 16px; border-radius: 10px; font-size: 15px; cursor: pointer;
 }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
 .btn.ghost { background: transparent; color: var(--muted); }
 .btn.small { padding: 5px 10px; font-size: 13px; }
@@ -36,15 +37,15 @@ body {
 .icon-btn:hover { background: rgba(0,0,0,.05); }
 
 /* ---------- login ---------- */
-#login-view { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .login-card {
   background: var(--card); padding: 32px 24px; border-radius: 18px; box-shadow: var(--shadow);
   width: 100%; max-width: 360px; text-align: center;
 }
 .login-logo { font-size: 36px; letter-spacing: 4px; }
 .login-card h1 { font-size: 22px; margin: 8px 0 20px; }
-#login-form { display: flex; flex-direction: column; gap: 14px; text-align: left; }
-#login-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.login-form { display: flex; flex-direction: column; gap: 14px; text-align: left; }
+.login-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
 input[type=email], input[type=password], input[type=text] {
   font-size: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--text);
 }
@@ -53,10 +54,6 @@ input[type=email], input[type=password], input[type=text] {
 /* ---------- top ---------- */
 .topbar { display: flex; align-items: center; justify-content: space-between; }
 .topbar h1 { font-size: 19px; margin: 0; }
-.demo-banner {
-  background: #fff4d6; border: 1px solid #f0d78a; color: #7a5b00;
-  font-size: 12px; padding: 8px 10px; border-radius: 10px;
-}
 
 .today-card {
   background: var(--card); border-radius: 14px; box-shadow: var(--shadow);
@@ -64,6 +61,7 @@ input[type=email], input[type=password], input[type=text] {
 }
 .today-card .t-head { font-weight: 700; font-size: 14px; }
 .today-card .t-rows { display: flex; flex-wrap: wrap; gap: 8px; }
+.today-card .t-memo { font-size: 13px; color: var(--muted); }
 .today-card .t-item {
   display: flex; align-items: center; gap: 6px; font-size: 14px;
   padding: 6px 10px; border-radius: 999px; background: #f2efe9;
@@ -113,13 +111,16 @@ input[type=email], input[type=password], input[type=text] {
 }
 
 /* ---------- dialogs ---------- */
-dialog {
-  border: none; border-radius: 16px; padding: 0; width: min(440px, calc(100vw - 24px));
-  box-shadow: 0 10px 40px rgba(0,0,0,.25); color: var(--text);
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 10;
+  display: flex; align-items: center; justify-content: center; padding: 12px;
 }
-dialog::backdrop { background: rgba(0,0,0,.35); }
-dialog form { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
-dialog h3 { margin: 0; font-size: 18px; }
+.modal {
+  background: #fff; border-radius: 16px; width: min(440px, 100%); max-height: calc(100vh - 24px); overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,.25); color: var(--text);
+  padding: 18px; display: flex; flex-direction: column; gap: 12px;
+}
+.modal h3 { margin: 0; font-size: 18px; }
 fieldset { border: none; padding: 0; margin: 0; }
 fieldset legend { font-size: 14px; font-weight: 700; margin-bottom: 6px; padding: 0; }
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -140,6 +141,6 @@ fieldset legend { font-size: 14px; font-weight: 700; margin-bottom: 6px; padding
 .toast {
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
   background: #2b2a28; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px;
-  opacity: 0; transition: .25s; pointer-events: none;
+  opacity: 0; transition: .25s; pointer-events: none; z-index: 20;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
