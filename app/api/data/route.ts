@@ -7,18 +7,27 @@ const DATA_KEY = 'task_table_data'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+// Vercel の Storage（Upstash for Redis）連携で注入される環境変数。
+// 接続時のプレフィックス設定によって名前が変わるため両方に対応する。
+function kvConfig() {
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
+  return url && token ? { url, token } : null
+}
+
 function isKvAvailable() {
-  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
+  return !!kvConfig()
 }
 
 // KV未設定時の開発用フォールバック（同一プロセス内のみ有効）
 let memoryStore: any = null
 
 async function getKv() {
-  if (!isKvAvailable()) return null
+  const cfg = kvConfig()
+  if (!cfg) return null
   try {
-    const { kv } = await import('@vercel/kv')
-    return kv
+    const { createClient } = await import('@vercel/kv')
+    return createClient(cfg)
   } catch (e) {
     console.error('Vercel KV import failed:', e)
     return null
